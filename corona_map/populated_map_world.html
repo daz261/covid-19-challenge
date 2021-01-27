@@ -1,0 +1,197 @@
+
+
+<!DOCTYPE html>
+<html>
+<head>
+  <meta http-equiv="content-type" content="text/html; charset=UTF-8">
+  <title>GeoJSON areas</title>
+  <meta http-equiv="content-type" content="text/html; charset=UTF-8">
+  <meta name="robots" content="noindex, nofollow">
+  <meta name="googlebot" content="noindex, nofollow">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+
+  <script
+    type="text/javascript"
+    src="/js/lib/dummy.js"
+    
+  ></script>
+
+    <link rel="stylesheet" type="text/css" href="/css/result-light.css">
+
+
+  <style id="compiled-css" type="text/css">
+      #container {
+    height: 500px; 
+    min-width: 310px; 
+    max-width: 800px; 
+    margin: 0 auto; 
+}
+.loading {
+    margin-top: 10em;
+    text-align: center;
+    color: gray;
+}
+    /* EOS */
+  </style>
+
+  <script id="insert"></script>
+
+
+</head>
+<body>
+    
+<script src="https://code.highcharts.com/maps/highmaps.js"></script>
+<script src="https://code.highcharts.com/maps/modules/data.js"></script>
+<script src="https://code.highcharts.com/maps/modules/data.js"></script>
+<script src="https://code.highcharts.com/maps/modules/exporting.js"></script>
+<script src="https://code.highcharts.com/maps/modules/offline-exporting.js"></script>
+<script src="https://code.highcharts.com/mapdata/custom/world.js"></script>
+<script src="https://code.highcharts.com/maps/highmaps.js"></script>
+
+<div id="container"></div>
+
+<script type="text/javascript">
+
+//Implementation of world map with COVID-19 cases 
+Highcharts.ajax({
+    url: 'https://raw.githubusercontent.com/daz261/covid-19-challenge/main/dataset.csv',
+    dataType: 'csv',
+    success: function (csv) {
+  
+     // Very simple and case-specific CSV string splitting
+      function CSVtoArray(text) {
+        return text.split(',');
+      }
+  
+      csv = csv.split(/\n/);
+      
+      
+      var countries = {},
+        mapChart,
+        numRegex = /^[0-9\.]+$/,
+        lastCommaRegex = /,\s$/,
+        quoteRegex = /\"/g,
+        //get columns - dates from 22 jan to 25 April
+        categories = CSVtoArray(csv[0]).slice(1);
+
+
+      // Parse the CSV into arrays, one array each country
+      csv.slice(1).forEach(function (line) {
+        var row = CSVtoArray(line),
+        //cases for each country in an array
+          data = row.slice(1);
+  
+        data.forEach(function (val, i) {
+          val = val.replace(quoteRegex, '');
+          if (numRegex.test(val)) {
+            val = parseInt(val, 10);
+          } else if (!val || lastCommaRegex.test(val)) {
+            val = null;
+          }
+          data[i] = val;
+        });
+        
+        //create country object with country name and cases over 2 months as data
+        countries[row[0]] = {
+          name: row[0],
+          data: data
+        };
+    });
+  
+      // For each country, use the latest value for current population
+      var data = [];
+      for (var name in countries) {
+        if (Object.hasOwnProperty.call(countries, name)) {
+          var value = null,
+            date,
+            itemData = countries[name].data,
+            i = itemData.length;
+  
+          while (i--) {
+            if (typeof itemData[i] === 'number') {
+              value = parseInt(itemData[i+1]);
+              date = categories[i+1];
+              break;
+            }
+          }
+          data.push({
+            name: name,
+            value: value,
+            date: date
+          });
+        }
+      }
+
+      // Initiate the map chart
+      var mapData = Highcharts.geojson(Highcharts.maps['custom/world']);
+
+      mapChart = Highcharts.mapChart('container', {
+  
+        title: {
+          text: 'COVID-19 Cases by Country'
+        },
+
+  
+        mapNavigation: {
+          enabled: true,
+          buttonOptions: {
+            verticalAlign: 'bottom'
+          }
+        },
+  
+        colorAxis: {
+            dataClasses: [{
+                to: 100
+            }, {
+                from: 100,
+                to: 500
+            }, {
+                from: 500,
+                to: 1000
+            }, {
+                from: 1000,
+                to: 5000
+            }, {
+                from: 5000,
+                to: 10000
+            }, {
+                from: 10000,
+                to: 50000
+            }, {
+                from: 50000
+            }]
+        },
+  
+        
+        series: [{
+          data: data,
+          mapData: mapData,
+          joinBy: ['name', 'name'],
+          name: 'COVID-19 Cases',
+          allowPointSelect: true,
+          cursor: 'pointer',
+          states: {
+            select: {
+              color: '#edb9a4',
+              borderColor: 'white'
+            }
+          },
+          borderWidth: 0.5
+        }],
+
+        
+      });
+  
+    }
+  });
+  
+
+ 
+
+</script>
+
+
+
+</body>
+</html>
